@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>On-Duty Approved Form</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e8ecef;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .letter-container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 100%;
+            border-left: 6px solid #007bff;
+        }
+
+        h2 {
+            text-align: center;
+            color: #343a40;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .letter-content {
+            margin-top: 20px;
+            line-height: 1.8;
+            color: #495057;
+        }
+
+        .letter-content p {
+            margin: 0 0 15px;
+            font-size: 16px;
+        }
+
+        .signature {
+            margin-top: 40px;
+            text-align: right;
+        }
+
+        .signature img {
+            max-width: 200px;
+            height: auto;
+            margin-top: 10px;
+        }
+
+        .thank-you {
+            text-align: center;
+            font-style: italic;
+            color: #007bff;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        .back-button {
+            display: block;
+            margin: 30px auto 0;
+            padding: 12px 24px;
+            background-color: #007bff;
+            color: #fff;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .back-button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="letter-container">
+    <h2>On-duty Letter </h2>
+    <div class="letter-content">
+        <p>Dear Sir/Madam,</p>
+        <p>I, <strong>{{ student.name }}</strong>, a student of the <strong>{{ student.department }}</strong> department, with Registration Number <strong>{{ student.reg_no }}</strong>, request On-Duty permission from <strong>{{ student.start_date }}</strong> to <strong>{{ student.end_date }}</strong> due to the <strong>{{ student.reason }}</strong>.</p>
+        <p>I kindly request you to consider my On-Duty application and grant me permission for the mentioned period.</p>
+        <p style= "color: black; font-weight: bold;">Created at: {{student.created_at.strftime('%d-%m-%Y')}}</p>
+        {% if student.is_approved %}
+            <p style="color: green; font-weight: bold;">Approved by the Class Counsellor</p>
+            <p style="color: green; font-weight: bold;">Approved At: {{ student.approved_at.strftime('%Y-%m-%d') }} </p>
+        {% elif student.is_disapproved %}
+            <p style="color: red; font-weight: bold;">Disapproved by the Class Counsellor</p>
+        {% else %}
+            <p style="color: orange; font-weight: bold;">Pending Counsellor's Decision</p>
+        {% endif %}
+        
+        <div class="signature">
+            <p>Sincerely,</p>
+            <p><strong>{{ student.name }}</strong></p>
+            <img src="{{ url_for('static', filename='uploads/' + student.signature_filename) }}" alt="Signature">
+        </div>
+    </div>
+    
+   
+</div>
+
+</body>
+
+</html>

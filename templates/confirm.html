@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirm Submission</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h2>Confirm Your Submission</h2>
+        <form method="POST" action="{{ url_for('submit') }}" enctype="multipart/form-data">
+            <p><strong>Name:</strong> {{ name }}</p>
+            <p><strong>Registration Number:</strong> {{ reg_no }}</p>
+            <p><strong>Gender:</strong> {{ gender }}</p>
+            <p><strong>From Date:</strong> {{ start_date }}</p>
+            <p><strong>To Date:</strong> {{ end_date }}</p>
+            <p><strong>Reason:</strong> {{ reason }}</p>
+            <p><strong>Department:</strong> {{ department }}</p>
+
+            <input type="hidden" name="name" value="{{ name }}">
+            <input type="hidden" name="reg_no" value="{{ reg_no }}">
+            <input type="hidden" name="gender" value="{{ gender }}">
+            <input type="hidden" name="start_date" value="{{ start_date }}">
+            <input type="hidden" name="end_date" value="{{ end_date }}">
+            <input type="hidden" name="reason" value="{{ reason }}">
+            <input type="hidden" name="department" value="{{ department }}">
+            <input type="hidden" name="signature" value="{{ signature }}">
+
+            <div class="button-group">
+                <a href="{{ url_for('index') }}" class="button">Edit</a>
+                <input type="submit" value="Submit">
+            </div>
+        </form>
+    </div>
+</body>
+</html>

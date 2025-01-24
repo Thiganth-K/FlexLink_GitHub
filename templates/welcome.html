@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KyZXEJwK6v4j+K6P4FG1cNk58IN63i+vyy0r1LQOP/lFmdOpfGxFh6bTmMlbn0J9" crossorigin="anonymous">
+    <link rel="icon" href="{{ url_for('static', filename='images/logo-pin.png') }}" type="image/png">
+    <title>Welcome to FlexLink</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #a0e3ff, #ccefff);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.05));
+        }
+
+        .background::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                45deg, 
+                rgba(255, 255, 255, 0.05), 
+                rgba(0, 0, 0, 0.05) 25%, 
+                transparent 25%, 
+                transparent 50%, 
+                rgba(255, 255, 255, 0.05) 50%, 
+                rgba(255, 255, 255, 0.05) 75%, 
+                transparent 75%, 
+                transparent
+            );
+            background-size: 40px 40px;
+            animation: move 6s infinite linear;
+            z-index: -1;
+        }
+
+        @keyframes move {
+            from {
+                background-position: 0 0;
+            }
+            to {
+                background-position: 40px 40px;
+            }
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 40px 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1;
+            position: relative;
+            opacity: 0;
+            animation: fadeIn 1.5s forwards;
+            animation-delay: 1s;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .logo {
+            width: 220px;
+            height: auto;
+            animation: flip 2s forwards;
+            animation-delay: 1s;
+            border-radius: 25px;
+        }
+
+        @keyframes flip {
+            0% {
+                transform: perspective(600px) rotateY(0deg) scale(0);
+            }
+            50% {
+                transform: perspective(600px) rotateY(180deg);
+            }
+            100% {
+                transform: perspective(600px) rotateY(0deg) scale(1);
+            }
+        }
+
+        .text-content {
+            text-align: left;
+            width: 60%; /* Adjust width for better spacing */
+        }
+
+        h1 {
+            color: #333;
+            margin: 40px 0 20px;
+            font-size: 48px;
+            font-weight: 700;
+            opacity: 0;
+            animation: fadeIn 1.5s forwards;
+            animation-delay: 2.5s;
+            text-transform: uppercase;
+        }
+
+        p {
+            margin-bottom: 30px;
+            font-size: 22px;
+            color: #555;
+            opacity: 0;
+            animation: fadeIn 1s forwards;
+            animation-delay: 3.5s;
+        }
+
+        a {
+            text-decoration: none;
+            background-color: #28a745;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 18px;
+            z-index: 1;
+            opacity: 0;
+            animation: fadeIn 1s forwards;
+            animation-delay: 4s;
+            transform: translateY(10px);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .cta-button:active {
+            transform: translateY(2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Responsive Design: Stack logo above content on small screens */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column; /* Stack the logo and text content */
+                align-items: center;
+                text-align: center;
+            }
+
+            .logo {
+                margin-bottom: 20px; /* Add space between logo and text */
+                width: 150px; /* Scale down logo for smaller screens */
+            }
+
+            .text-content {
+                width: 100%; /* Full width for text content */
+            }
+
+            h1 {
+                font-size: 36px; /* Smaller text on small screens */
+            }
+
+            p {
+                font-size: 18px; /* Smaller text for better readability */
+            }
+
+            a {
+                font-size: 16px; /* Slightly smaller button on small screens */
+                padding: 12px 24px;
+            }
+
+            /* Center the "Get Started" button below the text content */
+            .cta-button {
+                margin-top: 20px;
+                margin-left: 150px;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body class="d-flex justify-content-center align-items-center">
+    <div class="background"></div>
+
+    <div class="container animate__animated animate__fadeIn animate__delay-1s">
+        <!-- Logo on the left -->
+        <img class="logo mb-4" src="{{ url_for('static', filename='logo.png') }}" alt="FlexLink Logo">
+        
+        <!-- Text content on the right -->
+        <div class="text-content">
+            <h1 class="display-4 mb-3">Welcome to FlexLink!</h1>
+            <p class="lead mb-4">Your one-stop solution for managing leave/on-duty applications.</p>
+            <a href="{{ url_for('index') }}" class="btn btn-success btn-lg cta-button">Get Started</a>
+        </div>
+    </div>
+
+    <!-- Add Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pzjw8f+ua7Kw1TIq0f3k1+kR6Y1UGM0c7h0i9FDEi7Pp2xyXlqNnUksd2uGJHFak" crossorigin="anonymous"></script>
+</body>
+</html>

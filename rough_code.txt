@@ -1,0 +1,217 @@
+from flask import Flask, render_template, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from flask_mail import Mail, Message
+import os
+from werkzeug.utils import secure_filename
+from datetime import datetime
+from fpdf import FPDF
+
+app = Flask(__name__)
+
+# Configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///students.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static/uploads')
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Limit upload size to 16MB
+
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+# Mail configuration
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+app.config['MAIL_USERNAME'] = 'your-email@gmail.com'
+app.config['MAIL_PASSWORD'] = 'your-password'
+app.config['MAIL_DEFAULT_SENDER'] = 'your-email@gmail.com'
+
+mail = Mail(app)
+
+# Ensure the upload folder exists
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Database Model
+class Student(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    reg_no = db.Column(db.String(20), nullable=False)
+    gender = db.Column(db.String(10), nullable=False)
+    start_date = db.Column(db.String(10), nullable=False)
+    end_date = db.Column(db.String(10), nullable=True)
+    reason = db.Column(db.String(200), nullable=False)
+    department = db.Column(db.String(100), nullable=False)
+    signature_filename = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Add created_at
+    is_approved = db.Column(db.Boolean, default=None)
+    email = db.Column(db.String(120), nullable=True)
+    attachment_filename = db.Column(db.String(200), nullable=True)
+    approved_at = db.Column(db.DateTime)  # Add approved_at
+
+    def __repr__(self):
+        return f'<Student {self.name}>'
+
+@app.route('/')
+def welcome():
+    return render_template('welcome.html')
+
+@app.route('/section')
+def index():
+    return render_template('section.html')
+
+@app.route('/confirm', methods=['POST'])
+def confirm():
+    # Get form details
+    name = request.form['name']
+    reg_no = request.form['reg_no']
+    gender = request.form['gender']
+    start_date = request.form['start_date']
+    end_date = request.form['end_date']
+    reason = request.form['reason']
+    department = request.form['department']
+    signature = request.files['signature'].filename
+    attachment = request.files['attachment'].filename if 'attachment' in request.files else None
+
+    return render_template('confirm.html', 
+        name=name, 
+        reg_no=reg_no, 
+        gender=gender, 
+        start_date=start_date, 
+        end_date=end_date, 
+        reason=reason, 
+        department=department, 
+        signature=signature,
+        attachment=attachment
+    )
+
+@app.route('/submit', methods=['POST'])
+def submit():
+    # Handle file upload and save form details
+    if 'signature' not in request.files:
+        return "No file part", 400
+
+    signature_file = request.files['signature']
+    attachment_file = request.files['attachment']
+
+    if signature_file.filename == '':
+        return "No selected file", 400
+
+    signature_filename = secure_filename(signature_file.filename)
+    signature_file.save(os.path.join(app.config['UPLOAD_FOLDER'], signature_filename))
+
+    attachment_filename = None
+    if attachment_file and attachment_file.filename != '':
+        attachment_filename = secure_filename(attachment_file.filename)
+        attachment_file.save(os.path.join(app.config['UPLOAD_FOLDER'], attachment_filename))
+
+    start_date = request.form['start_date']
+    end_date = request.form['end_date']
+    if not end_date:
+        end_date = start_date
+
+    student = Student(
+        name=request.form['name'],
+        reg_no=request.form['reg_no'],
+        gender=request.form['gender'],
+        start_date=start_date,
+        end_date=end_date,
+        reason=request.form['reason'],
+        department=request.form['department'],
+        signature_filename=signature_filename,
+        email=request.form['email'],
+        attachment_filename=attachment_filename
+    )
+
+    db.session.add(student)
+    db.session.commit()
+
+    # Send email to counsellor
+    counsellor_email = 'counsellor-email@gmail.com'
+    msg = Message(
+        f"Leave Application from {student.name}",
+        recipients=[counsellor_email]
+    )
+    msg.html = f"""
+    <p>Dear Counsellor,</p>
+    <p>The student {student.name} (Reg No: {student.reg_no}) has submitted a leave form. Below are the details:</p>
+    <table style="border-collapse: collapse; width: 100%;">
+        <tr><th>Name</th><td>{student.name}</td></tr>
+        <tr><th>Registration Number</th><td>{student.reg_no}</td></tr>
+        <tr><th>Gender</th><td>{student.gender}</td></tr>
+        <tr><th>Start Date</th><td>{student.start_date}</td></tr>
+        <tr><th>End Date</th><td>{student.end_date}</td></tr>
+        <tr><th>Reason</th><td>{student.reason}</td></tr>
+        <tr><th>Department</th><td>{student.department}</td></tr>
+    </table>
+    <p><a href="{url_for('approve_form', form_id=student.id, _external=True)}" style="color: green;">Approve</a></p>
+    <p><a href="{url_for('disapprove_form', form_id=student.id, _external=True)}" style="color: red;">Disapprove</a></p>
+    """
+    with app.open_resource(os.path.join(app.config['UPLOAD_FOLDER'], signature_filename)) as fp:
+        msg.attach(signature_filename, "image/png", fp.read())
+    if attachment_filename:
+        with app.open_resource(os.path.join(app.config['UPLOAD_FOLDER'], attachment_filename)) as fp:
+            msg.attach(attachment_filename, "image/png", fp.read())
+
+    mail.send(msg)
+
+    return redirect(url_for('preview', reg_no=student.reg_no))
+
+@app.route('/preview/<reg_no>')
+def preview(reg_no):
+    student = Student.query.filter_by(reg_no=reg_no).order_by(Student.id.desc()).first()
+    return render_template('preview.html', student=student)
+
+@app.route('/approve_form/<form_id>')
+def approve_form(form_id):
+    student = Student.query.get_or_404(form_id)
+    student.is_approved = True
+    student.is_disapproved = False
+    student.approved_at = datetime.utcnow()
+    db.session.commit()
+
+    # Send email notification with approval status
+    send_status_email(student, approved=True)
+    
+    return redirect(url_for('preview', reg_no=student.reg_no))
+
+@app.route('/disapprove_form/<form_id>')
+def disapprove_form(form_id):
+    student = Student.query.get_or_404(form_id)
+    student.is_approved = False
+    student.is_disapproved = True
+    student.approved_at = datetime.utcnow()
+    db.session.commit()
+
+    # Send email notification with disapproval status
+    send_status_email(student, approved=False)
+    
+    return redirect(url_for('preview', reg_no=student.reg_no))
+
+def send_status_email(student, approved):
+    """Send an email to the student with approval or disapproval status"""
+    status = 'Approved' if approved else 'Disapproved'
+    msg = Message(f"Your Leave Form has been {status}", recipients=[student.email])
+    msg.body = f"Dear {student.name},\n\nYour leave form submitted on {student.created_at.strftime('%Y-%m-%d')} has been {status}.\n\nBest Regards,\nAttendance System"
+    
+    if approved:
+        # Attach approved form for download
+        msg.attach("approved_form.pdf", "application/pdf", generate_pdf(student, approved=True))
+    
+    mail.send(msg)
+
+def generate_pdf(student, approved):
+    """Generate a PDF for approved/disapproved leave form"""
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt=f"Leave Form - {('Approved' if approved else 'Disapproved')}", ln=True, align='C')
+    pdf.cell(200, 10, txt=f"Name: {student.name}", ln=True)
+    pdf.cell(200, 10, txt=f"Registration Number: {student.reg_no}", ln=True)
+    pdf.cell(200, 10, txt=f"Department: {student.department}", ln=True)
+    pdf.cell(200, 10, txt=f"Reason: {student.reason}", ln=True)
+    pdf.cell(200, 10, txt=f"Status: {('Approved' if approved else 'Disapproved')}", ln=True)
+    return pdf.output(dest='S').encode('latin1')  # Return PDF as string
+
+if __name__ == '__main__':
+    app.run(debug=True)
