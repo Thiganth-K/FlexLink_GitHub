@@ -9,6 +9,8 @@ from fpdf import FPDF
 from html import unescape 
 from xhtml2pdf import pisa
 import qrcode
+from weasyprint import HTML
+
 
 
 app = Flask(__name__)
@@ -120,15 +122,23 @@ def send_approval_email(user_email, approval_status, form_path):
     mail.send(msg)
 
 def generate_pdf_from_html(html_content, file_path):
-    # Convert HTML content into a PDF using pisa
-    with open(file_path, "w+b") as result_file:
-        pisa_status = pisa.CreatePDF(
-            src=html_content,           # the HTML content
-            dest=result_file            # the file to write the PDF to
-        )
-        if pisa_status.err:
-            return False
-    return True
+    """
+    Generate a PDF from HTML content using WeasyPrint.
+
+    Args:
+        html_content (str): The HTML content to convert into a PDF.
+        file_path (str): The path to save the generated PDF.
+
+    Returns:
+        bool: True if PDF generation is successful, False otherwise.
+    """
+    try:
+        # Convert HTML content to PDF and save to the specified file path
+        HTML(string=html_content).write_pdf(target=file_path)
+        return True
+    except Exception as e:
+        print(f"Error generating PDF: {e}")
+        return False
 
 def generate_qr_code(student, output_path):
     # Data to encode
@@ -282,15 +292,30 @@ def approve_form_1(form_id):
     form.approved_at = datetime.utcnow()
     db.session.commit()  # Commit changes
 
-     # Generate QR code
-    qr_path = f"static/qr_codes/{form_id}_qr.png"
+    # Generate QR code
+    qr_path = os.path.join(app.root_path, 'static', 'qr_codes', f"{form_id}_qr.png")
     generate_qr_code(form, qr_path)
 
-    # Generate the approval HTML content
-    approval_html = render_template('approved_form_1.html', student=form, qr_path=qr_path)
+    # Convert to file:// URL for the QR code image
+    qr_path_url = f"file://{qr_path}"
+
+    # If there's a signature, get the absolute file path and convert it to file:// URL
+    if form.signature_filename:
+        signature_path = os.path.join(app.root_path, 'static', 'uploads', form.signature_filename)
+        signature_path_url = f"file://{signature_path}"
+    else:
+        signature_path_url = None  # Handle case if no signature exists
+
+    # Generate the approval HTML content, passing the absolute file paths to the template
+    approval_html = render_template(
+        'approved_form_1.html', 
+        student=form, 
+        qr_path=qr_path_url,  # Pass absolute QR path
+        signature_path=signature_path_url  # Pass absolute signature path
+    )
 
     # Save the PDF to a file
-    form_path = f"static/approved_forms/{form_id}_approved.pdf"
+    form_path = os.path.join(app.root_path, 'static', 'approved_forms', f"{form_id}_approved.pdf")
     if generate_pdf_from_html(approval_html, form_path):
         # Send the PDF via email
         user_email = form.email  # Assuming you have the student's email
