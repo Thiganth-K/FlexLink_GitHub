@@ -98,8 +98,7 @@
             <p style="color: green; font-weight: bold;">Approved At: {{ student.approved_at.strftime('%Y-%m-%d') }} </p>
             <div class="qr-code">
                 <h3>Scan this QR Code:</h3>
-                <img src="{{ url_for('static', filename=student.qr_code_filename.split('static/')[-1]) }}" alt="QR Code">
-            </div>
+                <img src="{{ qr_path }}" alt="QR Code" style="width: 150px; height: 150px; display: block; margin: auto;">            </div>
         {% elif student.is_disapproved %}
             <p style="color: red; font-weight: bold;">Disapproved by the Class Counsellor</p>
         {% else %}

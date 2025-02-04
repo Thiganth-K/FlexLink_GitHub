@@ -10,6 +10,38 @@ from html import unescape
 from xhtml2pdf import pisa
 import qrcode
 from weasyprint import HTML
+import requests
+import time
+import json
+
+
+QR_CODE_JSON_PATH = "static/qrcodes/qrcode_data.json"
+
+def save_qr_code_path(form_id, qr_filename):
+    """ Save the QR Code path in a JSON file with form_id as key """
+    try:
+        if os.path.exists(QR_CODE_JSON_PATH):
+            with open(QR_CODE_JSON_PATH, "r", encoding="utf-8") as file:
+                qr_data = json.load(file)
+        else:
+            qr_data = {}
+
+        qr_data[str(form_id)] = qr_filename  # Store form_id as string to ensure JSON compatibility
+
+        with open(QR_CODE_JSON_PATH, "w", encoding="utf-8") as file:
+            json.dump(qr_data, file, indent=4)
+
+        print(f"[INFO] QR Code path saved for form_id {form_id}: {qr_filename}")
+    except Exception as e:
+        print(f"[ERROR] Failed to save QR Code path: {e}")
+
+def get_qr_code_path(form_id):
+    """ Retrieve the QR Code path from the JSON file """
+    if os.path.exists(QR_CODE_JSON_PATH):
+        with open(QR_CODE_JSON_PATH, "r", encoding="utf-8") as file:
+            qr_data = json.load(file)
+        return qr_data.get(str(form_id))  # Retrieve path if form_id exists
+    return None
 
 
 
@@ -121,25 +153,37 @@ def send_approval_email(user_email, approval_status, form_path):
 
     mail.send(msg)
 
-def generate_pdf_from_html(html_content, file_path):
+pdf_options = {
+    "margin-top": "20mm",
+    "margin-bottom": "40mm",
+    "margin-left": "15mm",
+    "margin-right": "15mm",
+    "page-size": "A4",
+}
+
+def generate_pdf_from_html(html_content, output_path, options=pdf_options):
     """
-    Generate a PDF from HTML content using WeasyPrint.
+    Converts an HTML string to a PDF file.
 
     Args:
-        html_content (str): The HTML content to convert into a PDF.
-        file_path (str): The path to save the generated PDF.
+        html_content (str): The HTML content to be converted.
+        output_path (str): The file path where the PDF should be saved.
 
     Returns:
-        bool: True if PDF generation is successful, False otherwise.
+        bool: True if the PDF was generated successfully, False otherwise.
     """
     try:
-        # Convert HTML content to PDF and save to the specified file path
-        HTML(string=html_content).write_pdf(target=file_path)
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        # Convert HTML to PDF using base_url for static file resolution
+        HTML(string=html_content, base_url=os.getcwd()).write_pdf(output_path)
+
+        print(f"PDF successfully generated: {output_path}")
         return True
     except Exception as e:
         print(f"Error generating PDF: {e}")
         return False
-
+        
 def generate_qr_code(student, output_path):
     # Data to encode
     qr_data = (
@@ -160,14 +204,18 @@ def generate_qr_code(student, output_path):
     img = qr.make_image(fill='black', back_color='white')
 
     # Define the filename using the student's register number and the current date
-    date_str = datetime.utcnow().strftime('%Y-%m-%d')
-    qr_filename = f"{student.reg_no}_{date_str}_{student.reason}qr.png"
+    #date_str = datetime.utcnow().strftime('%Y-%m-%d')
+    qr_filename = f"{student.reg_no}_{student.approved_at.strftime('%Y-%m-%d')}_{student.reason}_qr.png"
 
     qr_directory = "static/qrcodes/"
     os.makedirs(qr_directory, exist_ok=True)  # Ensure the directory exists
     qr_filepath = os.path.join(qr_directory, qr_filename)
 
     img.save(qr_filepath)
+    if os.path.exists(qr_filepath):
+        print(f"QR Code exists at: {qr_filepath}")
+    else:
+        print("QR Code file is missing!")
     # Update student object
     student.qr_code_filename = qr_filepath
     db.session.commit()
@@ -286,42 +334,47 @@ def full_day_leave_preview(reg_no):
 
 @app.route('/approve/<form_id>', methods=['GET', 'POST'])
 def approve_form_1(form_id):
-    # Fetch the form and update its status
     form = Student.query.get_or_404(form_id)
+
+    # Approve the form
     form.is_approved = True
     form.approved_at = datetime.utcnow()
-    db.session.commit()  # Commit changes
+    db.session.commit()
 
-    # Generate QR code
-    qr_path = os.path.join(app.root_path, 'static', 'qr_codes', f"{form_id}_qr.png")
-    generate_qr_code(form, qr_path)
+    # Retrieve QR Code path from JSON
+    qr_filename = get_qr_code_path(form_id)
 
-    # Convert to file:// URL for the QR code image
-    qr_path_url = f"file://{qr_path}"
+    if not qr_filename:
+        print(f"[ERROR] QR Code not found in JSON for form_id {form_id}. Regenerating...")
+        
+        # Define the QR code filename
+        qr_filename = f"static/qrcodes/{form.reg_no}_{form.approved_at.strftime('%Y-%m-%d')}_{form.reason}_qr.png"
 
-    # If there's a signature, get the absolute file path and convert it to file:// URL
-    if form.signature_filename:
-        signature_path = os.path.join(app.root_path, 'static', 'uploads', form.signature_filename)
-        signature_path_url = f"file://{signature_path}"
-    else:
-        signature_path_url = None  # Handle case if no signature exists
+        # Generate QR Code
+        generate_qr_code(form, qr_filename)
 
-    # Generate the approval HTML content, passing the absolute file paths to the template
-    approval_html = render_template(
-        'approved_form_1.html', 
-        student=form, 
-        qr_path=qr_path_url,  # Pass absolute QR path
-        signature_path=signature_path_url  # Pass absolute signature path
-    )
+        # Save the QR file path to JSON
+        save_qr_code_path(form_id, qr_filename)
 
-    # Save the PDF to a file
-    form_path = os.path.join(app.root_path, 'static', 'approved_forms', f"{form_id}_approved.pdf")
-    if generate_pdf_from_html(approval_html, form_path):
-        # Send the PDF via email
-        user_email = form.email  # Assuming you have the student's email
-        send_approval_email(user_email, "approved", form_path)
+    # Convert to full path
+    qr_path = os.path.join(app.root_path, qr_filename)
+
+    # Check if file exists
+    if not os.path.exists(qr_path):
+        print(f"[ERROR] QR Code file {qr_path} does not exist!")
+
+    # Generate the full URL for QR Code
+    qr_path_url = url_for('static', filename=f'qrcodes/{os.path.basename(qr_filename)}', _external=True)
+
+    # Generate the PDF
+    approval_html = render_template('approved_form_1.html', student=form, qr_path=qr_path_url)
+    pdf_output_path = os.path.join(app.root_path, 'static', 'approved_forms', f"{form_id}_approved.pdf")
+
+    if generate_pdf_from_html(approval_html, pdf_output_path, options=pdf_options):
+        send_approval_email(form.email, "approved", pdf_output_path)
 
     return redirect(url_for('full_day_leave_preview', reg_no=form.reg_no))
+
 
 @app.route('/full-day-leave-disagree/<int:student_id>')
 def full_day_leave_disagree(student_id):

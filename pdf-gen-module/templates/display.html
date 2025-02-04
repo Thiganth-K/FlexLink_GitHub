@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Details</title>
+</head>
+<body>
+    <h2>Details Submitted Successfully</h2>
+    <p><b>Name:</b> {{ user.name }}</p>
+    <p><b>Reg No:</b> {{ user.reg_no }}</p>
+    <p><b>Email:</b> {{ user.email }}</p>
+    <p><b>Date:</b> {{ user.date }}</p>
+
+    <h3>Scan QR Code:</h3>
+    <img src="{{ url_for('static', filename='qrcodes/' + user.reg_no + '.png') }}" alt="QR Code">
+
+    <p>An email has been sent to {{ user.email }} with the QR code attached.</p>
+</body>
+</html>
