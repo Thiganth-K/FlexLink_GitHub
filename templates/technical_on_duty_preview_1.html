@@ -6,68 +6,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>On-Duty Preview</title>
     <style>
-        body {
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #e8ecef;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            margin: 0;
-            padding: 20px;
+            width: 100vw;
+            overflow: hidden;
         }
 
         .letter-container {
             background-color: #ffffff;
-            padding: 30px;
+            padding: 2vw;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            max-width: 800px;
-            width: 100%;
+            width: 90vw;
+            height: 90vh;
             border-left: 6px solid #007bff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         h2 {
             text-align: center;
             color: #343a40;
-            margin-bottom: 20px;
-            font-size: 24px;
+            font-size: 2vw;
         }
 
         .letter-content {
-            margin-top: 20px;
-            line-height: 1.8;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 1vw;
             color: #495057;
+            font-size: 1.2vw;
         }
 
-        .letter-content p {
-            margin: 0 0 15px;
-            font-size: 16px;
+        .footer-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .qr-code {
+            text-align: left;
+        }
+
+        .qr-code h3 {
+            font-size: 1.2vw;
+        }
+
+        .qr-code img {
+            width: 10vw;
+            height: 10vw;
         }
 
         .signature {
-            margin-top: 40px;
             text-align: right;
+            
+        }
+
+        .signature p {
+            margin-bottom: 0.5vw;
         }
 
         .signature img {
-            max-width: 200px;
+            max-width: 12vw;
             height: auto;
-            margin-top: 10px;
-        }
-
-        .thank-you {
-            text-align: center;
-            font-style: italic;
-            color: #007bff;
-            margin-top: 20px;
-            font-size: 18px;
         }
 
         .back-button {
             display: block;
-            margin: 30px auto 0;
-            padding: 12px 24px;
+            padding: 1vw 2vw;
             background-color: #007bff;
             color: #fff;
             text-align: center;
@@ -76,49 +96,88 @@
             font-weight: bold;
             transition: background-color 0.3s ease, transform 0.2s ease;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            align-self: center;
+            width: fit-content;
         }
 
         .back-button:hover {
             background-color: #0056b3;
             transform: translateY(-2px);
         }
+
+        @media (max-width: 768px) {
+            .letter-container {
+                width: 95vw;
+                height: 95vh;
+                padding: 3vw;
+            }
+
+            h2 {
+                font-size: 4vw;
+            }
+
+            .letter-content {
+                font-size: 2.5vw;
+            }
+
+            .qr-code img, .signature img {
+                width: 15vw;
+                height: 15vw;
+            }
+
+            .footer-section{
+                flex-direction: column;
+                align-items: flex-end;
+            }
+            .signature{
+                text-align: right;
+            }
+            .signature img{
+                max-width: 20vw;
+            }
+            .back-button {
+                padding: 2vw 4vw;
+                font-size: 2vw;
+            }
+        }
     </style>
 </head>
 
 <body>
     <div class="letter-container">
-    <h2>On-Duty Letter Preview</h2>
-    <div class="letter-content">
-        <p>Dear Sir/Madam,</p>
-        <p>I, <strong>{{ student.name }}</strong>, a student of the <strong>{{ student.department }}</strong> department, with Registration Number <strong>{{ student.reg_no }}</strong>, request On-Duty from <strong>{{ student.start_date }}</strong> to <strong>{{ student.end_date }}</strong> due to <strong>{{ student.reason }}</strong>.</p>
-        <p>I kindly request you to consider my On-Duty application and grant me permission for the mentioned period.</p>
-        <p style="color: black; font-weight: bold;">Created at: {{student.created_at.strftime('%d-%m-%Y')}}</p>
-        {% if student.is_approved %}
-            <p style="color: green; font-weight: bold;">Approved by the Class Counsellor</p>
-        {% elif student.is_disapproved %}
-            <p style="color: red; font-weight: bold;">Disapproved by the Class Counsellor</p>
-        {% else %}
-            <p style="color: orange; font-weight: bold;">Pending Counsellor's Decision</p>
-        {% endif %}
-        
-        <div class="signature">
-            <p>Sincerely,</p>
-            <p><strong>{{ student.name }}</strong></p>
-            <img src="{{ url_for('static', filename='uploads/' + student.signature_filename) }}" alt="Signature">
-        </div>
-    </div>
-    <a href="{{ url_for('index') }}" class="back-button">Back to Form</a>
-    <p>Attachment: 
-        {% if student.attachment_filename %}
-            <a href="{{ url_for('static', filename='uploads/' + student.attachment_filename) }}" target="_blank">View Attachment</a>
-        {% else %}
-            No attachment
-        {% endif %}
-    </p>
-    
-</div>
+        <h2>On-Duty Letter Preview</h2>
+        <div class="letter-content">
+            <p>Dear Sir/Madam,</p>
+            <p>I, <strong>{{ student.name }}</strong>, a student of the <strong>{{ student.department }}</strong> department, with Registration Number <strong>{{ student.reg_no }}</strong>, request On-Duty from <strong>{{ student.start_date }}</strong> to <strong>{{ student.end_date }}</strong> due to <strong>{{ student.reason }}</strong>.</p>
+            <p>I kindly request you to consider my On-Duty application and grant me permission for the mentioned period.</p>
+            <p style="color: black; font-weight: bold;">Created at: {{student.created_at.strftime('%d-%m-%Y')}}</p>
 
+            {% if student.is_approved %}
+                <p style="color: green; font-weight: bold;">Approved by the Class Counsellor</p>
+            {% elif student.is_disapproved %}
+                <p style="color: red; font-weight: bold;">Disapproved by the Class Counsellor</p>
+            {% else %}
+                <p style="color: orange; font-weight: bold;">Pending Counsellor's Decision</p>
+            {% endif %}
+        </div>
+
+        <div class="footer-section">
+            {% if student.is_approved %}
+            <div class="qr-code">
+                <h3>Scan this QR Code:</h3>
+                <img src="{{ url_for('static', filename=student.qr_code_filename.split('static/')[-1]) }}" alt="QR Code">
+            </div>
+            {% endif %}
+
+            <div class="signature">
+                <p>Sincerely,</p>
+                <p><strong>{{ student.name }}</strong></p>
+                <img src="{{ url_for('static', filename='uploads/' + student.signature_filename) }}" alt="Signature">
+            </div>
+        </div>
+
+        <a href="{{ url_for('index') }}" class="back-button">Back to Form</a>
+    </div>
 </body>
 
 </html>
- 

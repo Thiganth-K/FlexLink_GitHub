@@ -25,6 +25,10 @@
             max-width: 800px;
             width: 100%;
             border-left: 6px solid #007bff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: auto;
         }
 
         h2 {
@@ -35,7 +39,7 @@
         }
 
         .letter-content {
-            margin-top: 20px;
+            flex-grow: 1;
             line-height: 1.8;
             color: #495057;
         }
@@ -45,23 +49,31 @@
             font-size: 16px;
         }
 
+        .footer-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 20px;
+        }
+
         .signature {
-            margin-top: 40px;
             text-align: right;
+            align-self: flex-end;
         }
 
         .signature img {
-            max-width: 200px;
+            max-width: 150px;
             height: auto;
             margin-top: 10px;
         }
 
-        .thank-you {
-            text-align: center;
-            font-style: italic;
-            color: #007bff;
-            margin-top: 20px;
-            font-size: 18px;
+        .qr-code {
+            text-align: left;
+        }
+
+        .qr-code img {
+            width: 120px;
+            height: 120px;
         }
 
         .back-button {
@@ -76,51 +88,73 @@
             font-weight: bold;
             transition: background-color 0.3s ease, transform 0.2s ease;
             box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            width: fit-content;
         }
 
         .back-button:hover {
             background-color: #0056b3;
             transform: translateY(-2px);
         }
+
+        @media (max-width: 768px) {
+            .footer-section {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .signature {
+                align-self: center;
+                text-align: center;
+            }
+        }
     </style>
 </head>
 
 <body>
     <div class="letter-container">
-    <h2>On-Duty-Specific-hour Preview</h2>
-    <div class="letter-content">
-        <p>Dear Sir/Madam,</p>
-        <p>I, <strong>{{ student.name }}</strong>, a student of the <strong>{{ student.department }}</strong> department, with Registration Number <strong>{{ student.reg_no }}</strong>, request on-duty on the following hours <strong>{{ student.hours }}</strong> due to <strong>{{ student.reason }}</strong>.</p>
-        <p>I kindly request you to consider my on-duty application and grant me permission for the mentioned period.</p>
-        <p style="color: black; font-weight: bold;">Created At: {{ student.created_at.strftime('%Y-%m-%d') }} </p>
-        {% if student.is_approved %}
-            <p style="color: green; font-weight: bold;">Approved by the Class Counsellor</p>
-            
-            <p style="color: green; font-weight: bold;">Approved At: {{ student.approved_at.strftime('%Y-%m-%d') }} </p>
-        {% elif student.is_disapproved %}
-            <p style="color: red; font-weight: bold;">Disapproved by the Class Counsellor</p>
-            
-        {% else %}
-            <p style="color: orange; font-weight: bold;">Pending Counsellor's Decision</p>
-        {% endif %}
-        
-        <div class="signature">
-            <p>Sincerely,</p>
-            <p><strong>{{ student.name }}</strong></p>
-            <img src="{{ url_for('static', filename='uploads/' + student.signature_filename) }}" alt="Signature">
-        </div>
-    </div>
-    <a href="{{ url_for('index') }}" class="back-button">Back to Form</a>
-    <p>Attachment: 
-        {% if student.attachment_filename %}
-            <a href="{{ url_for('static', filename='uploads/' + student.attachment_filename) }}" target="_blank">View Attachment</a>
-        {% else %}
-            No attachment
-        {% endif %}
-    </p>
-    
-</div>
+        <h2>On-Duty-Specific-hour Preview</h2>
+        <div class="letter-content">
+            <p>Dear Sir/Madam,</p>
+            <p>I, <strong>{{ student.name }}</strong>, a student of the <strong>{{ student.department }}</strong> department, with Registration Number <strong>{{ student.reg_no }}</strong>, request on-duty on the following hours <strong>{{ student.hours }}</strong> due to <strong>{{ student.reason }}</strong>.</p>
+            <p>I kindly request you to consider my on-duty application and grant me permission for the mentioned period.</p>
+            <p style="color: black; font-weight: bold;">Created At: {{ student.created_at.strftime('%Y-%m-%d') }} </p>
 
+            {% if student.is_approved %}
+                <p style="color: green; font-weight: bold;">Approved by the Class Counsellor</p>
+                <p style="color: green; font-weight: bold;">Approved At: {{ student.approved_at.strftime('%Y-%m-%d') }} </p>
+            {% elif student.is_disapproved %}
+                <p style="color: red; font-weight: bold;">Disapproved by the Class Counsellor</p>
+            {% else %}
+                <p style="color: orange; font-weight: bold;">Pending Counsellor's Decision</p>
+            {% endif %}
+        </div>
+
+        <div class="footer-section">
+            {% if student.is_approved %}
+            <div class="qr-code">
+                <h3>Scan this QR Code:</h3>
+                <img src="{{ url_for('static', filename=student.qr_code_filename.split('static/')[-1]) }}" alt="QR Code">
+            </div>
+            {% endif %}
+
+            <div class="signature">
+                <p>Sincerely,</p>
+                <p><strong>{{ student.name }}</strong></p>
+                <img src="{{ url_for('static', filename='uploads/' + student.signature_filename) }}" alt="Signature">
+            </div>
+        </div>
+
+        <a href="{{ url_for('index') }}" class="back-button">Back to Form</a>
+
+        <p>Attachment:
+            {% if student.attachment_filename %}
+                <a href="{{ url_for('static', filename='uploads/' + student.attachment_filename) }}" target="_blank">View Attachment</a>
+            {% else %}
+                No attachment
+            {% endif %}
+        </p>
+    </div>
 </body>
 
 </html>

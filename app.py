@@ -192,6 +192,7 @@ def generate_qr_code(student, output_path):
         f"Department: {student.department}\n"
         f"Leave From: {student.start_date}\n"
         f"Leave To: {student.end_date}\n"
+        f"Hours: {student.hours}\n"
         f"Reason: {student.reason}\n"
         f"Approved At: {student.approved_at.strftime('%Y-%m-%d')}\n"
         f"Email: {student.email}"
@@ -509,16 +510,25 @@ def approve_form_2(form_id):
     form.is_approved = True
     form.approved_at = datetime.utcnow()
     db.session.commit()  # Commit changes
-
-    # Generate the approval HTML content
-    approval_html = render_template('approved_form_2.html', student=form)
-
+    qr_filename= get_qr_code_path(form_id)
+    if not qr_filename:
+        print(f"[ERROR] QR Code not found in JSON for form_id {form_id}. Regnerating...")
+        qr_filename= f"static/qrcodes/{form.reg_no}_{form.approved_at.strftime('%Y-%m-%d')}_{form.reason}_qr.png"
+        generate_qr_code(form, qr_filename)
+        save_qr_code_path(form_id, qr_filename)
+    qr_path= os.path.join(app.root_path, qr_filename)
+    if not os.path.exists(qr_path):
+        print(f"[ERROR] QR Code file {qr_path} does not exit!!")
+    qr_path_url= url_for('static', filename= f'qrcodes/{os.path.basename(qr_filename)}', _external= True)
+        # Generate the approval HTML content
+    approval_html= render_template('approved_form_2.html', student= form, qr_path= qr_path_url)
     # Save the PDF to a file
-    form_path = f"static/approved_forms/{form_id}_approved.pdf"
-    if generate_pdf_from_html(approval_html, form_path):
+    pdf_output_path= os.path.join(app.root_path, 'static', 'approved_forms', f"{form_id}_approved.pdf")
+
+    if generate_pdf_from_html(approval_html, pdf_output_path, options= pdf_options):
         # Send the PDF via email
         user_email = form.email  # Assuming you have the student's email
-        send_approval_email(user_email, "approved", form_path)
+        send_approval_email(user_email, "approved", pdf_output_path)
 
     return redirect(url_for('preview_for_specific_hour', reg_no=form.reg_no))
 
@@ -661,18 +671,21 @@ def technical_on_duty_approve_form_1(form_id):
     form.is_approved = True
     form.approved_at= datetime.utcnow()
     db.session.commit()  # Commit changes
-
-    # Generate the approval HTML content
-    on_duty_approval_html = render_template('technical_on_duty_approved_form_1.html', student=form)
-
-    # Save the PDF to a file
-    form_path = f"static/approved_forms/{form_id}_approved.pdf"
-    if generate_pdf_from_html(on_duty_approval_html, form_path):
-        # Send the PDF via email
-        user_email = form.email  # Assuming you have the student's email
-        send_on_duty_approval_email(user_email, "approved", form_path)
-
-    return redirect(url_for('technical_on_duty_preview_1', reg_no=form.reg_no))
+    qr_filename= get_qr_code_path(form_id)
+    if not qr_filename:
+        print(f"[ERROR] QR Code not found in JSON for form_id {form_id}. Regenerating...")
+        qr_filename= f"static/qrcodes/{form.reg_no}_{form.approved_at.strftime('%Y-%m-%d')}_{form.reason}_qr.png"
+        generate_qr_code(form, qr_filename)
+        save_qr_code_path(form_id, qr_filename)
+    qr_path= os.path.join(app.root_path, qr_filename)
+    if not os.path.exists(qr_path):
+        print(f"[ERROR] QR code file {qr_path} does not exits!")
+    qr_path_url= url_for('static', filename= f'qrcodes/{os.path.basename(qr_filename)}', _external= True)
+    approved_html= render_template('technical_on_duty_approved_form_1.html', student= form, qr_path= qr_path_url)
+    pdf_output_path= os.path.join(app.root_path, 'static', 'approved_forms', f"{form_id}_approved.pdf")
+    if generate_pdf_from_html(approved_html, pdf_output_path, options= pdf_options):
+        send_approval_email(form.email, "approved", pdf_output_path)
+    return redirect(url_for('technical_on_duty_preview_1', reg_no= form.reg_no))
 
 @app.route('/full-day-on-duty-disagree/<int:student_id>')
 def technical_on_duty_disagree_1(student_id):
@@ -802,19 +815,23 @@ def technical_on_duty_approve_form_2(form_id):
     form.is_approved = True
     form.approved_at= datetime.utcnow()
     db.session.commit()  # Commit changes
-
-    # Generate the approval HTML content
-    on_duty_approval_html = render_template('technical_on_duty_approved_form_2.html', student=form)
-
-    # Save the PDF to a file
-    form_path = f"static/approved_forms/{form_id}_approved.pdf"
-    if generate_pdf_from_html(on_duty_approval_html, form_path):
-        # Send the PDF via email
-        user_email = form.email  # Assuming you have the student's email
-        send_on_duty_approval_email(user_email, "approved", form_path)
-
-    return redirect(url_for('technical_on_duty_preview_2', reg_no=form.reg_no))
-
+    qr_filename= get_qr_code_path(form_id)
+    if not qr_filename:
+        print(f"[ERROR] QR Code not found in JSON file for Form id: {form_id}. Regenerating...")
+        qr_filename= f"static/qrcodes/{form.reg_no}_{form.approved_at.strftime('%Y-%m-%d')}_{form.reason}_qr.png"
+        generate_qr_code(form, qr_filename)
+        save_qr_code_path(form_id, qr_filename)
+    qr_path= os.path.join(app.root_path, qr_filename)
+    if not os.path.exists(qr_path):
+        print(f"[ERROR] QR Code does not exists!!")
+    qr_path_url= url_for('static', filename= f'qrcodes/{os.path.basename(qr_filename)}', _external= True)
+    approval_html= render_template('technical_on_duty_approved_form_2.html', student= form, qr_path= qr_path_url)
+    pdf_output_path= os.path.join(app.root_path, 'static', 'approved_forms', f"{form_id}_approved.pdf")
+    if generate_pdf_from_html(approval_html, pdf_output_path, options= pdf_options):
+        user_email= form.email
+        send_approval_email(user_email, "approved", pdf_output_path)
+    return redirect(url_for('technical_on_duty_preview_2', reg_no= form.reg_no))
+    
 @app.route('/technical-on-duty-specific-hour-preview/<reg_no>')
 def technical_on_duty_preview_2(reg_no):
     student= Student.query.filter_by(reg_no=reg_no).order_by(Student.created_at.desc()).first_or_404()
@@ -947,19 +964,22 @@ def non_technical_on_duty_approve_form_1(form_id):
     form.is_approved = True
     form.approved_at= datetime.utcnow()
     db.session.commit()  # Commit changes
-
-    # Generate the approval HTML content
-    on_duty_approval_html = render_template('technical_on_duty_approved_form_1.html', student=form)
-
-    # Save the PDF to a file
-    form_path = f"static/approved_forms/{form_id}_approved.pdf"
-    if generate_pdf_from_html(on_duty_approval_html, form_path):
-        # Send the PDF via email
-        user_email = form.email  # Assuming you have the student's email
-        send_on_duty_approval_email(user_email, "approved", form_path)
-
-    return redirect(url_for('non_technical_on_duty_preview_1', reg_no=form.reg_no))
-
+    qr_filename= get_qr_code_path(form_id)
+    if not qr_filename:
+        print(f"[ERROR] QR Code not found in JSON for form id: {form_id}. Regenerating...")
+        qr_filename= f"static/qrcodes/{form.reg_no}_{form.approved_at.strftime('%Y-%m-%d')}_{form.reason}_qr.png"
+        generate_qr_code(form, qr_filename)
+        save_qr_code_path(form_id, qr_filename)
+    qr_path= os.path.join(app.root_path, qr_filename)
+    if not os.path.exists(qr_path):
+        print(f"[ERROR] QR Code file {qr_path} does not exists!!")
+    qr_path_url= url_for('static', filename= f'qrcodes/{os.path.basename(qr_filename)}', _external= True)
+    approved_html= render_template('technical_on_duty_approved_form_1.html', student= form, qr_path= qr_path_url)
+    pdf_output_path= os.path.join(app.root_path, 'static', 'approved_forms', f"{form_id}_approved.pdf")
+    if generate_pdf_from_html(approved_html, pdf_output_path, options= pdf_options):
+        send_approval_email(form.email, "approved", pdf_output_path)
+    return redirect(url_for('non_technical_on_duty_preview_1', reg_no= form.reg_no))
+ 
 @app.route('/non-technical-full-day-on-duty-disagree/<int:student_id>')
 def non_technical_on_duty_disagree_1(student_id):
     student = Student.query.get_or_404(student_id)
@@ -1102,18 +1122,23 @@ def non_technical_on_duty_approve_form_2(form_id):
     form.is_approved = True
     form.approved_at= datetime.utcnow()
     db.session.commit()  # Commit changes
+    qr_filename= get_qr_code_path(form_id)
+    if not qr_filename:
+        print(f"[ERROR] QR code not found in th JSON for the Form id - {form_id}. Regenerating...")
+        qr_filename= f"static/qrcodes/{form.reg_no}_{form.approved_at.strftime('%Y-%m-%d')}_{form.reason}_qr.png"
+        generate_qr_code(form, qr_filename)
+        save_qr_code_path(form_id, qr_filename)
+    qr_path= os.path.join(app.root_path, qr_filename)
+    if not os.path.exists(qr_path):
+        print(f"[ERROR] QR Code does not exists!!")
+    qr_path_url= url_for('static', filename= f'qrcodes/{os.path.basename(qr_filename)}', external= True)
+    approved_html= render_template('non_technical_on_duty_approve_form_2.html', student= form)
+    pdf_output_path= os.path.join(app.root_path, 'static', 'approved_forms', f"{form_id}_approved.pdf")
+    if generate_pdf_from_html(approved_html, pdf_output_path, options= pdf_options):
+        user_email= form.email
+        send_approval_email(user_email, "approved", pdf_output_path)
+    return redirect(url_for('non_technical_on_duty_preview_2', reg_no= form.reg_no))
 
-    # Generate the approval HTML content
-    on_duty_approval_html_1 = render_template('non_technical_on_duty_approve_form_2.html', student=form)
-
-    # Save the PDF to a file
-    form_path = f"static/approved_forms/{form_id}_approved.pdf"
-    if generate_pdf_from_html(on_duty_approval_html_1, form_path):
-        # Send the PDF via email
-        user_email = form.email  # Assuming you have the student's email
-        send_on_duty_approval_email(user_email, "approved", form_path)
-
-    return redirect(url_for('non_technical_on_duty_preview_2', reg_no=form.reg_no))
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Create the database tables
