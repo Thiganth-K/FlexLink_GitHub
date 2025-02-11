@@ -43,8 +43,6 @@
             z-index: -1;
         }
 
-        
-
         @keyframes move {
             from {
                 background-position: 0 0;
@@ -128,10 +126,74 @@
                 padding: 8px;
             }
         }
+
+        /* Popup Styles */
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+            display: none;
+            z-index: 1000;
+        }
+
+        .popup h3 {
+            color: #d32f2f;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .popup p {
+            font-size: 14px;
+            color: #555;
+        }
+
+        .popup button {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: #d32f2f;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .popup button:hover {
+            background: #b71c1c;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 999;
+        }
     </style>
 </head>
 <body>
     <div class="background"></div>
+
+    <!-- Disclaimer Popup -->
+    <div class="overlay" id="overlay"></div>
+    <div class="popup" id="popup">
+        <h3>Disclaimer</h3>
+        <p>Please ensure you have a <strong>soft copy of the required document</strong> and your <strong>digital signature</strong> ready before proceeding.</p>
+        <button onclick="closePopup()">OK</button>
+    </div>
+
     <div class="container">
         <h2>Select Form</h2>
         <div class="form-option">
@@ -141,5 +203,19 @@
             <a href="{{ url_for('on_duty_form') }}">On-Duty Form</a>
         </div>
     </div>
+
+    <script>
+        // Show the popup when the page loads
+        window.onload = function () {
+            document.getElementById("popup").style.display = "block";
+            document.getElementById("overlay").style.display = "block";
+        };
+
+        // Function to close the popup
+        function closePopup() {
+            document.getElementById("popup").style.display = "none";
+            document.getElementById("overlay").style.display = "none";
+        }
+    </script>
 </body>
 </html>
